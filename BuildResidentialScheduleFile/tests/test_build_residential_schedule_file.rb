@@ -279,6 +279,19 @@ class BuildResidentialScheduleFileTest < Minitest::Test
     assert_empty(hpxml.buildings[0].header.schedules_filepaths)
   end
 
+  def test_ev_battery
+    num_occupants = 1
+
+    hpxml = _create_hpxml('base-battery-ev.xml')
+    hpxml.buildings[0].building_occupancy.number_of_residents = num_occupants
+    XMLHelper.write_file(hpxml.to_doc, @tmp_hpxml_path)
+
+    @args_hash['output_csv_path'] = File.absolute_path(File.join(@tmp_output_path, 'occupancy-stochastic.csv'))
+    _hpxml, result = _test_measure()
+
+    assert _hpxml.buildings[0].header.schedules_filepaths[0].end_with?("occupancy-stochastic.csv")
+  end
+
   def test_multiple_buildings
     hpxml = _create_hpxml('base-bldgtype-mf-whole-building.xml')
     hpxml.buildings.each do |hpxml_bldg|
