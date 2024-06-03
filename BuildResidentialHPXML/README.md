@@ -6,7 +6,7 @@
 ## Description
 Builds a residential HPXML file.
 
-Note: OS-HPXML default values can be found in the OS-HPXML documentation or can be seen by using the 'apply_defaults' argument.
+The measure handles geometry by 1) translating high-level geometry inputs (conditioned floor area, number of stories, etc.) to 3D closed-form geometry in an OpenStudio model and then 2) mapping the OpenStudio surfaces to HPXML surfaces (using surface type, boundary condition, area, orientation, etc.). Like surfaces are collapsed into a single surface with aggregate surface area. Note: OS-HPXML default values can be found in the documentation or can be seen by using the 'apply_defaults' argument.
 
 ## Arguments
 
@@ -180,6 +180,19 @@ Affects the transient calculation of indoor air temperatures. If not provided, t
 
 <br/>
 
+**Simulation Control: Defrost Model Type**
+
+Research feature to select the type of defrost model. Use standard for default E+ defrost setting. Use advanced for an improved model that better accounts for load and energy use during defrost; using advanced may impact simulation runtime. If not provided, the OS-HPXML default (see <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#hpxml-simulation-control'>HPXML Simulation Control</a>) is used.
+
+- **Name:** ``simulation_control_defrost_model_type``
+- **Type:** ``Choice``
+
+- **Required:** ``false``
+
+- **Choices:** `standard`, `advanced`
+
+<br/>
+
 **Site: Type**
 
 The type of site. If not provided, the OS-HPXML default (see <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#hpxml-site'>HPXML Site</a>) is used.
@@ -245,17 +258,6 @@ Diffusivity of the ground soil. If provided, overrides the previous site and moi
 
 <br/>
 
-**Site: Zip Code**
-
-Zip code of the home address.
-
-- **Name:** ``site_zip_code``
-- **Type:** ``String``
-
-- **Required:** ``false``
-
-<br/>
-
 **Site: IECC Zone**
 
 IECC zone of the home address.
@@ -269,9 +271,20 @@ IECC zone of the home address.
 
 <br/>
 
+**Site: City**
+
+City/municipality of the home address.
+
+- **Name:** ``site_city``
+- **Type:** ``String``
+
+- **Required:** ``false``
+
+<br/>
+
 **Site: State Code**
 
-State code of the home address.
+State code of the home address. If not provided, the OS-HPXML default (see <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#hpxml-site'>HPXML Site</a>) is used.
 
 - **Name:** ``site_state_code``
 - **Type:** ``Choice``
@@ -282,14 +295,64 @@ State code of the home address.
 
 <br/>
 
+**Site: Zip Code**
+
+Zip code of the home address.
+
+- **Name:** ``site_zip_code``
+- **Type:** ``String``
+
+- **Required:** ``false``
+
+<br/>
+
 **Site: Time Zone UTC Offset**
 
-Time zone UTC offset of the home address. Must be between -12 and 14.
+Time zone UTC offset of the home address. Must be between -12 and 14. If not provided, the OS-HPXML default (see <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#hpxml-site'>HPXML Site</a>) is used.
 
 - **Name:** ``site_time_zone_utc_offset``
 - **Type:** ``Double``
 
 - **Units:** ``hr``
+
+- **Required:** ``false``
+
+<br/>
+
+**Site: Elevation**
+
+Elevation of the home address. If not provided, the OS-HPXML default (see <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#hpxml-site'>HPXML Site</a>) is used.
+
+- **Name:** ``site_elevation``
+- **Type:** ``Double``
+
+- **Units:** ``ft``
+
+- **Required:** ``false``
+
+<br/>
+
+**Site: Latitude**
+
+Latitude of the home address. Must be between -90 and 90. Use negative values for southern hemisphere. If not provided, the OS-HPXML default (see <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#hpxml-site'>HPXML Site</a>) is used.
+
+- **Name:** ``site_latitude``
+- **Type:** ``Double``
+
+- **Units:** ``deg``
+
+- **Required:** ``false``
+
+<br/>
+
+**Site: Longitude**
+
+Longitude of the home address. Must be between -180 and 180. Use negative values for the western hemisphere. If not provided, the OS-HPXML default (see <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#hpxml-site'>HPXML Site</a>) is used.
+
+- **Name:** ``site_longitude``
+- **Type:** ``Double``
+
+- **Units:** ``deg``
 
 - **Required:** ``false``
 
@@ -1753,6 +1816,30 @@ The output heating capacity of the heating system. If not provided, the OS-HPXML
 
 <br/>
 
+**Heating System: Heating Autosizing Factor**
+
+The capacity scaling factor applied to the auto-sizing methodology. If not provided, 1.0 is used.
+
+- **Name:** ``heating_system_heating_autosizing_factor``
+- **Type:** ``Double``
+
+- **Required:** ``false``
+
+<br/>
+
+**Heating System: Heating Autosizing Limit**
+
+The maximum capacity limit applied to the auto-sizing methodology. If not provided, no limit is used.
+
+- **Name:** ``heating_system_heating_autosizing_limit``
+- **Type:** ``Double``
+
+- **Units:** ``Btu/hr``
+
+- **Required:** ``false``
+
+<br/>
+
 **Heating System: Fraction Heat Load Served**
 
 The heating load served by the heating system.
@@ -1860,6 +1947,30 @@ The sensible heat fraction of the cooling system. Ignored for evaporative cooler
 The output cooling capacity of the cooling system. If not provided, the OS-HPXML autosized default (see <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#central-air-conditioner'>Central Air Conditioner</a>, <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#room-air-conditioner'>Room Air Conditioner</a>, <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#packaged-terminal-air-conditioner'>Packaged Terminal Air Conditioner</a>, <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#evaporative-cooler'>Evaporative Cooler</a>, <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#mini-split-air-conditioner'>Mini-Split Air Conditioner</a>) is used.
 
 - **Name:** ``cooling_system_cooling_capacity``
+- **Type:** ``Double``
+
+- **Units:** ``Btu/hr``
+
+- **Required:** ``false``
+
+<br/>
+
+**Cooling System: Cooling Autosizing Factor**
+
+The capacity scaling factor applied to the auto-sizing methodology. If not provided, 1.0 is used.
+
+- **Name:** ``cooling_system_cooling_autosizing_factor``
+- **Type:** ``Double``
+
+- **Required:** ``false``
+
+<br/>
+
+**Cooling System: Cooling Autosizing Limit**
+
+The maximum capacity limit applied to the auto-sizing methodology. If not provided, no limit is used.
+
+- **Name:** ``cooling_system_cooling_autosizing_limit``
 - **Type:** ``Double``
 
 - **Units:** ``Btu/hr``
@@ -2083,6 +2194,30 @@ The output heating capacity of the heat pump. If not provided, the OS-HPXML auto
 
 <br/>
 
+**Heat Pump: Heating Autosizing Factor**
+
+The capacity scaling factor applied to the auto-sizing methodology. If not provided, 1.0 is used.
+
+- **Name:** ``heat_pump_heating_autosizing_factor``
+- **Type:** ``Double``
+
+- **Required:** ``false``
+
+<br/>
+
+**Heat Pump: Heating Autosizing Limit**
+
+The maximum capacity limit applied to the auto-sizing methodology. If not provided, no limit is used.
+
+- **Name:** ``heat_pump_heating_autosizing_limit``
+- **Type:** ``Double``
+
+- **Units:** ``Btu/hr``
+
+- **Required:** ``false``
+
+<br/>
+
 **Heat Pump: Heating Capacity Retention Fraction**
 
 The output heating capacity of the heat pump at a user-specified temperature (e.g., 17F or 5F) divided by the above nominal heating capacity. Applies to all heat pump types except ground-to-air. If not provided, the OS-HPXML default (see <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#air-to-air-heat-pump'>Air-to-Air Heat Pump</a>, <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#mini-split-heat-pump'>Mini-Split Heat Pump</a>, <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#packaged-terminal-heat-pump'>Packaged Terminal Heat Pump</a>, <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#room-air-conditioner-w-reverse-cycle'>Room Air Conditioner w/ Reverse Cycle</a>) is used.
@@ -2114,6 +2249,30 @@ The user-specified temperature (e.g., 17F or 5F) for the above heating capacity 
 The output cooling capacity of the heat pump. If not provided, the OS-HPXML autosized default (see <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#air-to-air-heat-pump'>Air-to-Air Heat Pump</a>, <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#mini-split-heat-pump'>Mini-Split Heat Pump</a>, <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#packaged-terminal-heat-pump'>Packaged Terminal Heat Pump</a>, <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#room-air-conditioner-w-reverse-cycle'>Room Air Conditioner w/ Reverse Cycle</a>, <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#ground-to-air-heat-pump'>Ground-to-Air Heat Pump</a>) is used.
 
 - **Name:** ``heat_pump_cooling_capacity``
+- **Type:** ``Double``
+
+- **Units:** ``Btu/hr``
+
+- **Required:** ``false``
+
+<br/>
+
+**Heat Pump: Cooling Autosizing Factor**
+
+The capacity scaling factor applied to the auto-sizing methodology. If not provided, 1.0 is used.
+
+- **Name:** ``heat_pump_cooling_autosizing_factor``
+- **Type:** ``Double``
+
+- **Required:** ``false``
+
+<br/>
+
+**Heat Pump: Cooling Autosizing Limit**
+
+The maximum capacity limit applied to the auto-sizing methodology. If not provided, no limit is used.
+
+- **Name:** ``heat_pump_cooling_autosizing_limit``
 - **Type:** ``Double``
 
 - **Units:** ``Btu/hr``
@@ -2171,6 +2330,30 @@ The backup type of the heat pump. If 'integrated', represents e.g. built-in elec
 - **Required:** ``true``
 
 - **Choices:** `none`, `integrated`, `separate`
+
+<br/>
+
+**Heat Pump: Backup Heating Autosizing Factor**
+
+The capacity scaling factor applied to the auto-sizing methodology if Backup Type is 'integrated'. If not provided, 1.0 is used. If Backup Type is 'separate', use Heating System 2: Heating Autosizing Factor.
+
+- **Name:** ``heat_pump_backup_heating_autosizing_factor``
+- **Type:** ``Double``
+
+- **Required:** ``false``
+
+<br/>
+
+**Heat Pump: Backup Heating Autosizing Limit**
+
+The maximum capacity limit applied to the auto-sizing methodology if Backup Type is 'integrated'. If not provided, no limit is used. If Backup Type is 'separate', use Heating System 2: Heating Autosizing Limit.
+
+- **Name:** ``heat_pump_backup_heating_autosizing_limit``
+- **Type:** ``Double``
+
+- **Units:** ``Btu/hr``
+
+- **Required:** ``false``
 
 <br/>
 
@@ -2605,6 +2788,30 @@ The output heating capacity of the second heating system. If not provided, the O
 
 <br/>
 
+**Heating System 2: Heating Autosizing Factor**
+
+The capacity scaling factor applied to the auto-sizing methodology. If not provided, 1.0 is used.
+
+- **Name:** ``heating_system_2_heating_autosizing_factor``
+- **Type:** ``Double``
+
+- **Required:** ``false``
+
+<br/>
+
+**Heating System 2: Heating Autosizing Limit**
+
+The maximum capacity limit applied to the auto-sizing methodology. If not provided, no limit is used.
+
+- **Name:** ``heating_system_2_heating_autosizing_limit``
+- **Type:** ``Double``
+
+- **Units:** ``Btu/hr``
+
+- **Required:** ``false``
+
+<br/>
+
 **Heating System 2: Fraction Heat Load Served**
 
 The heat load served fraction of the second heating system. Ignored if this heating system serves as a backup system for a heat pump.
@@ -2684,6 +2891,19 @@ Enter a date like 'Jun 1 - Oct 31'. If not provided, the OS-HPXML default (see <
 
 <br/>
 
+**HVAC Blower: Fan Efficiency**
+
+The blower fan efficiency at maximum fan speed. Applies only to split (not packaged) systems (i.e., applies to ducted systems as well as ductless mini-split systems). If not provided, the OS-HPXML default (see <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#hpxml-heating-systems'>HPXML Heating Systems</a>, <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#hpxml-cooling-systems'>HPXML Cooling Systems</a>, <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#hpxml-heat-pumps'>HPXML Heat Pumps</a>) is used.
+
+- **Name:** ``hvac_blower_fan_watts_per_cfm``
+- **Type:** ``Double``
+
+- **Units:** ``W/CFM``
+
+- **Required:** ``false``
+
+<br/>
+
 **Ducts: Leakage Units**
 
 The leakage units of the ducts.
@@ -2708,17 +2928,6 @@ The leakage value to outside for the supply ducts.
 
 <br/>
 
-**Ducts: Return Leakage to Outside Value**
-
-The leakage value to outside for the return ducts.
-
-- **Name:** ``ducts_return_leakage_to_outside_value``
-- **Type:** ``Double``
-
-- **Required:** ``true``
-
-<br/>
-
 **Ducts: Supply Location**
 
 The location of the supply ducts. If not provided, the OS-HPXML default (see <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#air-distribution'>Air Distribution</a>) is used.
@@ -2734,7 +2943,7 @@ The location of the supply ducts. If not provided, the OS-HPXML default (see <a 
 
 **Ducts: Supply Insulation R-Value**
 
-The insulation r-value of the supply ducts excluding air films.
+The nominal insulation r-value of the supply ducts excluding air films. Use 0 for uninsulated ducts.
 
 - **Name:** ``ducts_supply_insulation_r``
 - **Type:** ``Double``
@@ -2784,6 +2993,30 @@ The fraction of supply ducts surface area in the given location. Only used if Su
 
 <br/>
 
+**Ducts: Supply Fraction Rectangular**
+
+The fraction of supply ducts that are rectangular (as opposed to round); this affects the duct effective R-value used for modeling. If not provided, the OS-HPXML default (see <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#air-distribution'>Air Distribution</a>) is used.
+
+- **Name:** ``ducts_supply_fraction_rectangular``
+- **Type:** ``Double``
+
+- **Units:** ``frac``
+
+- **Required:** ``false``
+
+<br/>
+
+**Ducts: Return Leakage to Outside Value**
+
+The leakage value to outside for the return ducts.
+
+- **Name:** ``ducts_return_leakage_to_outside_value``
+- **Type:** ``Double``
+
+- **Required:** ``true``
+
+<br/>
+
 **Ducts: Return Location**
 
 The location of the return ducts. If not provided, the OS-HPXML default (see <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#air-distribution'>Air Distribution</a>) is used.
@@ -2799,7 +3032,7 @@ The location of the return ducts. If not provided, the OS-HPXML default (see <a 
 
 **Ducts: Return Insulation R-Value**
 
-The insulation r-value of the return ducts excluding air films.
+The nominal insulation r-value of the return ducts excluding air films. Use 0 for uninsulated ducts.
 
 - **Name:** ``ducts_return_insulation_r``
 - **Type:** ``Double``
@@ -2857,6 +3090,19 @@ The number of return registers of the ducts. Only used to calculate default retu
 - **Type:** ``Integer``
 
 - **Units:** ``#``
+
+- **Required:** ``false``
+
+<br/>
+
+**Ducts: Return Fraction Rectangular**
+
+The fraction of return ducts that are rectangular (as opposed to round); this affects the duct effective R-value used for modeling. If not provided, the OS-HPXML default (see <a href='https://openstudio-hpxml.readthedocs.io/en/v1.7.0/workflow_inputs.html#air-distribution'>Air Distribution</a>) is used.
+
+- **Name:** ``ducts_return_fraction_rectangular``
+- **Type:** ``Double``
+
+- **Units:** ``frac``
 
 - **Required:** ``false``
 
@@ -3469,16 +3715,16 @@ The setpoint temperature of water heater. If not provided, the OS-HPXML default 
 
 <br/>
 
-**Water Heater: Number of Units Served**
+**Water Heater: Number of Bedrooms Served**
 
-Number of dwelling units served (directly or indirectly) by the water heater. Must be 1 if single-family detached. Used to apportion water heater tank losses to the unit.
+Number of bedrooms served (directly or indirectly) by the water heater. Only needed if single-family attached or apartment unit and it is a shared water heater serving multiple dwelling units. Used to apportion water heater tank losses to the unit.
 
-- **Name:** ``water_heater_num_units_served``
+- **Name:** ``water_heater_num_bedrooms_served``
 - **Type:** ``Integer``
 
 - **Units:** ``#``
 
-- **Required:** ``true``
+- **Required:** ``false``
 
 <br/>
 
@@ -3934,7 +4180,7 @@ System losses fraction of the PV system. If there are two PV systems, this will 
 
 **PV System: Number of Bedrooms Served**
 
-Number of bedrooms served by PV system. Required if single-family attached or apartment unit. Used to apportion PV generation to the unit of a SFA/MF building. If there are two PV systems, this will apply to both.
+Number of bedrooms served by PV system. Only needed if single-family attached or apartment unit and it is a shared PV system serving multiple dwelling units. Used to apportion PV generation to the unit of a SFA/MF building. If there are two PV systems, this will apply to both.
 
 - **Name:** ``pv_system_num_bedrooms_served``
 - **Type:** ``Integer``
@@ -4110,7 +4356,7 @@ The round trip efficiency of the lithium ion battery. If not provided, the OS-HP
 
 **Battery: Number of Bedrooms Served**
 
-Number of bedrooms served by the lithium ion battery. Required if single-family attached or apartment unit. Used to apportion battery charging/discharging to the unit of a SFA/MF building.
+Number of bedrooms served by the lithium ion battery. Only needed if single-family attached or apartment unit and it is a shared battery serving multiple dwelling units. Used to apportion battery charging/discharging to the unit of a SFA/MF building.
 
 - **Name:** ``battery_num_bedrooms_served``
 - **Type:** ``Integer``
