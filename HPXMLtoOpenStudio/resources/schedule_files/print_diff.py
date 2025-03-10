@@ -9,6 +9,7 @@ import os
 import subprocess
 import pandas as pd
 import sys
+import argparse
 
 def get_git_tracked_csv_files():
     """Get all tracked CSV files in the current directory."""
@@ -20,18 +21,29 @@ def get_git_tracked_csv_files():
     )
     return [file.strip() for file in result.stdout.splitlines()]
 
-def get_file_from_git(file_path):
-    """Get the content of a file from git."""
+def get_file_from_git(file_path, branch=None):
+    """Get the content of a file from git.
+    
+    Args:
+        file_path: Path to the file
+        branch: Optional branch name to get the file from
+    """
+    ref = branch if branch else "HEAD"
     result = subprocess.run(
-        ["git", "show", f"HEAD:{file_path}"],
+        ["git", "show", f"{ref}:{file_path}"],
         capture_output=True,
         text=True,
         cwd=os.path.dirname(os.path.abspath(__file__))
     )
     return result.stdout
 
-def compare_csv_files(file_path):
-    """Compare a CSV file on disk with its version in git."""
+def compare_csv_files(file_path, branch=None):
+    """Compare a CSV file on disk with its version in git.
+    
+    Args:
+        file_path: Path to the file
+        branch: Optional branch name to compare against
+    """
     # Get the directory of the script
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
@@ -55,9 +67,9 @@ def compare_csv_files(file_path):
         return f"Error reading current file {file_path}: {str(e)}"
     
     # Get the file content from git
-    git_content = get_file_from_git(rel_path)
+    git_content = get_file_from_git(rel_path, branch)
     if not git_content:
-        return f"File {file_path} not found in git"
+        return f"File {file_path} not found in {'branch ' + branch if branch else 'git'}"
     
     # Write git content to a temporary file and read it
     temp_file = os.path.join(script_dir, "temp_git_file.csv")
@@ -99,6 +111,10 @@ def compare_csv_files(file_path):
                 sum_git = df_git[col].sum()
                 sum_current = df_current[col].sum()
                 
+                # Count non-zero values
+                nonzero_git = (df_git[col] != 0).sum()
+                nonzero_current = (df_current[col] != 0).sum()
+                
                 # Get sample of changed values
                 diff_mask = df_current[col] != df_git[col]
                 if diff_mask.any():
@@ -110,11 +126,11 @@ def compare_csv_files(file_path):
                     
                     changed_columns.append((
                         col, 
-                        f"total: {sum_git:.2f} -> {sum_current:.2f}",
+                        f"total: {sum_git:.2f} -> {sum_current:.2f}\nnon-zero values: {nonzero_git} -> {nonzero_current}",
                         sample_changes
                     ))
                 else:
-                    changed_columns.append((col, f"total: {sum_git:.2f} -> {sum_current:.2f}", None))
+                    changed_columns.append((col, f"total: {sum_git:.2f} -> {sum_current:.2f}\nnon-zero values: {nonzero_git} -> {nonzero_current}", None))
             else:
                 # For non-numeric columns, show a few examples of changes
                 diff_mask = df_current[col] != df_git[col]
@@ -135,6 +151,8 @@ def compare_csv_files(file_path):
     result = []
     result.append("=" * 80)
     result.append(f"FILE: {os.path.basename(file_path)}")
+    if branch:
+        result.append(f"COMPARING: Current state vs branch '{branch}'")
     result.append("=" * 80)
     
     # Add summary section
@@ -174,6 +192,11 @@ def compare_csv_files(file_path):
 
 def main():
     """Main function to compare all CSV files."""
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Compare CSV files with git versions')
+    parser.add_argument('--with', dest='branch', help='Compare with specified branch instead of HEAD')
+    args = parser.parse_args()
+    
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
     
@@ -183,12 +206,14 @@ def main():
     # Check if any files have changed
     changed_files = []
     for file_path in csv_files:
-        diff_result = compare_csv_files(file_path)
+        diff_result = compare_csv_files(file_path, args.branch)
         if diff_result:
             changed_files.append(diff_result)
     
     if changed_files:
         print("Schedule files that changed:")
+        if args.branch:
+            print(f"Comparing current state with branch: {args.branch}")
         print("")  # Add blank line for readability
         for i, result in enumerate(changed_files):
             print(result)
@@ -198,7 +223,10 @@ def main():
         # Exit with error code to fail the CI
         sys.exit(1)
     else:
-        print("No changes detected in schedule CSV files.")
+        if args.branch:
+            print(f"No changes detected in schedule CSV files compared to branch: {args.branch}")
+        else:
+            print("No changes detected in schedule CSV files.")
         # Exit with success code
         sys.exit(0)
 

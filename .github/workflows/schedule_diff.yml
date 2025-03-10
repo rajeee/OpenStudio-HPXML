@@ -1,0 +1,80 @@
+name: Schedule Files Diff
+
+on:
+  pull_request:
+    paths:
+      - 'HPXMLtoOpenStudio/resources/schedule_files/*.csv'
+
+jobs:
+  schedule-diff:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Need full history for branch comparison
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+      
+      - name: Run schedule diff
+        id: diff
+        run: |
+          # Run the diff script and capture output
+          OUTPUT=$(python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with origin/master)
+          EXIT_CODE=$?
+          
+          # Escape GitHub Actions special characters in the output
+          OUTPUT="${OUTPUT//'%'/'%25'}"
+          OUTPUT="${OUTPUT//$'\n'/'%0A'}"
+          OUTPUT="${OUTPUT//$'\r'/'%0D'}"
+          
+          # Set output variables
+          echo "diff_output=$OUTPUT" >> $GITHUB_OUTPUT
+          echo "has_changes=$EXIT_CODE" >> $GITHUB_OUTPUT
+          
+          # Always exit with 0 to not fail the workflow
+          exit 0
+      
+      - name: Find Comment
+        uses: peter-evans/find-comment@v2
+        id: find-comment
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: 'Schedule Files Diff Report'
+      
+      - name: Create or update comment
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ## Schedule Files Diff Report
+            
+            ${{ steps.diff.outputs.has_changes == '1' && '⚠️ **Changes detected** in schedule files between this PR and master' || '✅ **No changes detected** in schedule files between this PR and master' }}
+            
+            <details>
+            <summary>Click to expand full diff output</summary>
+            
+            ```
+            ${{ steps.diff.outputs.diff_output }}
+            ```
+            
+            </details>
+            
+            _Last updated: ${{ format(github.event.pull_request.updated_at, 'YYYY-MM-DD HH:mm:ss') }}_
+            
+            _This comment is automatically generated and updated by GitHub Actions when CSV files change._
+          edit-mode: replace
