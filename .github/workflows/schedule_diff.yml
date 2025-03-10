@@ -2,8 +2,13 @@ name: Schedule Files Diff
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened]
     paths:
       - 'HPXMLtoOpenStudio/resources/schedule_files/*.csv'
+      - '.github/workflows/schedule-diff.yml'  # Also trigger when the workflow itself changes
+
+  # Add manual trigger option
+  workflow_dispatch:
 
 jobs:
   schedule-diff:
@@ -28,8 +33,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas
       
-      - name: Debug environment
+      - name: Debug trigger info
         run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Event action: ${{ github.event.action }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Repository: ${{ github.repository }}"
           echo "Current directory: $(pwd)"
           echo "Directory contents:"
           ls -la
@@ -93,7 +102,7 @@ jobs:
             
             </details>
             
-            _Last updated: ${{ github.event.pull_request.updated_at ? format(github.event.pull_request.updated_at, 'YYYY-MM-DD HH:mm:ss') : format(github.event.repository.updated_at, 'YYYY-MM-DD HH:mm:ss') }}_
+            _Last updated: ${{ format(github.event.repository.updated_at, 'YYYY-MM-DD HH:mm:ss') }}_
             
             _This comment is automatically generated and updated by GitHub Actions when CSV files change._
           edit-mode: replace
