@@ -319,6 +319,10 @@ jobs:
           # Make script executable
           chmod +x HPXMLtoOpenStudio/resources/schedule_files/print_diff.py
           
+          # Try running with debug output
+          echo "Running diff script..."
+          python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with origin/master || echo "Script failed with exit code $?"
+
           # Run the diff script and capture output
           echo "Running diff against $BASE_BRANCH"
           OUTPUT=$(python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with $BASE_BRANCH 2>&1)
