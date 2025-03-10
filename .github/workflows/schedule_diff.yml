@@ -28,12 +28,34 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas
       
+      - name: Debug environment
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Directory contents:"
+          ls -la
+          echo "Schedule files directory contents:"
+          ls -la HPXMLtoOpenStudio/resources/schedule_files/ || echo "Directory not found"
+          echo "Git branches:"
+          git branch -a
+      
       - name: Run schedule diff
         id: diff
         run: |
-          # Run the diff script and capture output
-          OUTPUT=$(python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with origin/master)
+          # Make sure the script is executable
+          chmod +x HPXMLtoOpenStudio/resources/schedule_files/print_diff.py
+          
+          # Try running with debug output
+          echo "Running diff script..."
+          python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with origin/master || echo "Script failed with exit code $?"
+          
+          # Now capture the output for the comment
+          echo "Capturing output for comment..."
+          OUTPUT=$(python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with origin/master 2>&1) || true
           EXIT_CODE=$?
+          
+          echo "Raw output:"
+          echo "$OUTPUT"
+          echo "Exit code: $EXIT_CODE"
           
           # Escape GitHub Actions special characters in the output
           OUTPUT="${OUTPUT//'%'/'%25'}"
@@ -43,9 +65,6 @@ jobs:
           # Set output variables
           echo "diff_output=$OUTPUT" >> $GITHUB_OUTPUT
           echo "has_changes=$EXIT_CODE" >> $GITHUB_OUTPUT
-          
-          # Always exit with 0 to not fail the workflow
-          exit 0
       
       - name: Find Comment
         uses: peter-evans/find-comment@v2
@@ -74,7 +93,7 @@ jobs:
             
             </details>
             
-            _Last updated: ${{ format(github.event.pull_request.updated_at, 'YYYY-MM-DD HH:mm:ss') }}_
+            _Last updated: ${{ github.event.pull_request.updated_at ? format(github.event.pull_request.updated_at, 'YYYY-MM-DD HH:mm:ss') : format(github.event.repository.updated_at, 'YYYY-MM-DD HH:mm:ss') }}_
             
             _This comment is automatically generated and updated by GitHub Actions when CSV files change._
           edit-mode: replace
