@@ -329,7 +329,7 @@ jobs:
           body: |
             ## Schedule Files Diff Report
             
-            ${{ steps.diff.outputs.actual_changes == 'true' ? '⚠️ **Changes detected** in schedule files between this PR and master' : '✅ **No changes detected** in schedule files between this PR and master' }}
+            ${{ steps.diff.outputs.actual_changes == 'true' ? '**Changes detected** in schedule files between this PR and master' : '**No changes detected** in schedule files between this PR and master' }}
             
             <details>
             <summary>Click to expand full diff output</summary>
