@@ -284,17 +284,9 @@ jobs:
       
       - name: Check for CSV changes
         id: check_files
-        run: |
-          # Determine base branch (master or main)
-          if git rev-parse --verify origin/master >/dev/null 2>&1; then
-            BASE_BRANCH="origin/master"
-          else
-            BASE_BRANCH="origin/main"
-          fi
-          echo "Using $BASE_BRANCH as base branch"
-          
+        run: |         
           # Check if any CSV files in the schedule directory have changed
-          CHANGED_FILES=$(git diff --name-only $BASE_BRANCH...HEAD -- HPXMLtoOpenStudio/resources/schedule_files/*.csv)
+          CHANGED_FILES=$(git diff --name-only origin/master...HEAD -- HPXMLtoOpenStudio/resources/schedule_files/*.csv)
           
           if [ -n "$CHANGED_FILES" ]; then
             echo "CSV files changed:"
@@ -309,24 +301,12 @@ jobs:
         id: diff
         if: steps.check_files.outputs.csv_changed == 'true' || github.event_name == 'workflow_dispatch'
         run: |
-          # Determine base branch (master or main)
-          if git rev-parse --verify origin/master >/dev/null 2>&1; then
-            BASE_BRANCH="origin/master"
-          else
-            BASE_BRANCH="origin/main"
-          fi
-          
           # Make script executable
           chmod +x HPXMLtoOpenStudio/resources/schedule_files/print_diff.py
           
-          # Try running with debug output
-          echo "Running diff script..."
-          python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with origin/master || echo "Script failed with exit code $?"
-
           # Run the diff script and capture output
-          echo "Running diff against $BASE_BRANCH"
-          OUTPUT=$(python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with $BASE_BRANCH 2>&1)
-          EXIT_CODE=$?
+          echo "Running diff against origin/master"
+          OUTPUT=$(python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with origin/master 2>&1) || true
           
           # Check if output contains "columns changed" to determine if there are actual changes
           if echo "$OUTPUT" | grep -q "columns changed"; then
@@ -334,26 +314,12 @@ jobs:
           else
             ACTUAL_CHANGES="false"
           fi
-          
-          # Store raw output for debugging
-          echo "Raw output:"
-          echo "$OUTPUT"
-          echo "Exit code: $EXIT_CODE"
-          echo "Detected changes: $ACTUAL_CHANGES"
-          
-          # Set output variables
-          echo "diff_output<<EOF" >> $GITHUB_OUTPUT
-          echo "$OUTPUT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "has_changes=$EXIT_CODE" >> $GITHUB_OUTPUT
-          echo "actual_changes=$ACTUAL_CHANGES" >> $GITHUB_OUTPUT
-      
+
       - name: Set status message
         id: status
-        if: steps.diff.outputs.actual_changes == 'true' || steps.diff.outputs.actual_changes == 'false'
         run: |
           if [ "${{ steps.diff.outputs.actual_changes }}" == "true" ]; then
-            echo "message=⚠️ **Changes detected** in schedule files between this PR and master" >> $GITHUB_OUTPUT
+            echo "message=**Changes detected** in schedule files between this PR and master" >> $GITHUB_OUTPUT
           else
             echo "message=**No changes detected** in schedule files between this PR and master" >> $GITHUB_OUTPUT
           fi
