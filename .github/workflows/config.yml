@@ -301,21 +301,22 @@ jobs:
         id: diff
         if: steps.check_files.outputs.csv_changed == 'true' || github.event_name == 'workflow_dispatch'
         run: |
-          # Make script executable
           chmod +x HPXMLtoOpenStudio/resources/schedule_files/print_diff.py
-          
-          # Run the diff script and capture output
           echo "Running diff against origin/master"
-          OUTPUT=$(python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with master 2>&1) || true
-          
-          # Check if output contains "columns changed" to determine if there are actual changes
+          OUTPUT=$(python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with origin/master 2>&1) || true
+
+          # Detect actual changes
           if echo "$OUTPUT" | grep -q "columns changed"; then
             ACTUAL_CHANGES="true"
           else
             ACTUAL_CHANGES="false"
           fi
-          echo "actual_changes=$ACTUAL_CHANGES" >> $GITHUB_OUTPUT
-          echo "diff_output=$OUTPUT" >> $GITHUB_OUTPUT
+
+          # Write outputs in multiline format
+          echo "actual_changes=$ACTUAL_CHANGES" >> "$GITHUB_OUTPUT"
+          echo "diff_output<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$OUTPUT" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Set status message
         id: status
