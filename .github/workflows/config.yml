@@ -272,7 +272,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -283,14 +282,46 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas
       
+      - name: Check for CSV changes
+        id: check_files
+        run: |
+          # Determine base branch (master or main)
+          if git rev-parse --verify origin/master >/dev/null 2>&1; then
+            BASE_BRANCH="origin/master"
+          else
+            BASE_BRANCH="origin/main"
+          fi
+          echo "Using $BASE_BRANCH as base branch"
+          
+          # Check if any CSV files in the schedule directory have changed
+          CHANGED_FILES=$(git diff --name-only $BASE_BRANCH...HEAD -- HPXMLtoOpenStudio/resources/schedule_files/*.csv)
+          
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "CSV files changed:"
+            echo "$CHANGED_FILES"
+            echo "csv_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "No CSV files changed"
+            echo "csv_changed=false" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Run schedule diff
         id: diff
+        if: steps.check_files.outputs.csv_changed == 'true' || github.event_name == 'workflow_dispatch'
         run: |
+          # Determine base branch (master or main)
+          if git rev-parse --verify origin/master >/dev/null 2>&1; then
+            BASE_BRANCH="origin/master"
+          else
+            BASE_BRANCH="origin/main"
+          fi
+          
           # Make script executable
           chmod +x HPXMLtoOpenStudio/resources/schedule_files/print_diff.py
           
           # Run the diff script and capture output
-          OUTPUT=$(python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with origin/master 2>&1)
+          echo "Running diff against $BASE_BRANCH"
+          OUTPUT=$(python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with $BASE_BRANCH 2>&1)
           EXIT_CODE=$?
           
           # Check if output contains "columns changed" to determine if there are actual changes
@@ -313,23 +344,50 @@ jobs:
           echo "has_changes=$EXIT_CODE" >> $GITHUB_OUTPUT
           echo "actual_changes=$ACTUAL_CHANGES" >> $GITHUB_OUTPUT
       
+      - name: Set status message
+        id: status
+        if: steps.diff.outputs.actual_changes == 'true' || steps.diff.outputs.actual_changes == 'false'
+        run: |
+          if [ "${{ steps.diff.outputs.actual_changes }}" == "true" ]; then
+            echo "message=⚠️ **Changes detected** in schedule files between this PR and master" >> $GITHUB_OUTPUT
+          else
+            echo "message=**No changes detected** in schedule files between this PR and master" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Find PR number
+        id: find_pr
+        if: github.event_name == 'push' && (steps.check_files.outputs.csv_changed == 'true' || github.event_name == 'workflow_dispatch')
+        run: |
+          PR_NUMBER=$(gh pr list --head ${{ github.ref_name }} --json number -q '.[0].number')
+          if [ -n "$PR_NUMBER" ]; then
+            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+            echo "Found PR: $PR_NUMBER"
+          else
+            echo "No PR found for this branch"
+            echo "pr_number=" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
       - name: Find Comment
         uses: peter-evans/find-comment@v2
         id: find-comment
+        if: (github.event_name == 'pull_request' || github.event_name == 'pull_request_review' || steps.find_pr.outputs.pr_number != '') && (steps.check_files.outputs.csv_changed == 'true' || github.event_name == 'workflow_dispatch')
         with:
-          issue-number: ${{ github.event.pull_request.number }}
+          issue-number: ${{ github.event.pull_request.number || steps.find_pr.outputs.pr_number }}
           comment-author: 'github-actions[bot]'
           body-includes: 'Schedule Files Diff Report'
       
       - name: Create or update comment
         uses: peter-evans/create-or-update-comment@v2
+        if: (github.event_name == 'pull_request' || github.event_name == 'pull_request_review' || steps.find_pr.outputs.pr_number != '') && (steps.check_files.outputs.csv_changed == 'true' || github.event_name == 'workflow_dispatch')
         with:
           comment-id: ${{ steps.find-comment.outputs.comment-id }}
-          issue-number: ${{ github.event.pull_request.number }}
+          issue-number: ${{ github.event.pull_request.number || steps.find_pr.outputs.pr_number }}
           body: |
             ## Schedule Files Diff Report
             
-            ${{ steps.diff.outputs.actual_changes == 'true' ? '**Changes detected** in schedule files between this PR and master' : '**No changes detected** in schedule files between this PR and master' }}
+            ${{ steps.status.outputs.message }}
             
             <details>
             <summary>Click to expand full diff output</summary>
