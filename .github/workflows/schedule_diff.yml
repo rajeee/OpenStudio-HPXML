@@ -5,7 +5,7 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - 'HPXMLtoOpenStudio/resources/schedule_files/*.csv'
-      - '.github/workflows/schedule-diff.yml'
+      - '.github/workflows/schedule_diff.yml'
   workflow_dispatch:
 
 jobs:
