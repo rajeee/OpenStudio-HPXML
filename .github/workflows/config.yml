@@ -260,3 +260,87 @@ jobs:
             echo "Pushing to branch: $branch_name"
             git push -u origin $branch_name
           fi
+
+  schedule-diff:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+      
+      - name: Run schedule diff
+        id: diff
+        run: |
+          # Make script executable
+          chmod +x HPXMLtoOpenStudio/resources/schedule_files/print_diff.py
+          
+          # Run the diff script and capture output
+          OUTPUT=$(python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with origin/master 2>&1)
+          EXIT_CODE=$?
+          
+          # Check if output contains "columns changed" to determine if there are actual changes
+          if echo "$OUTPUT" | grep -q "columns changed"; then
+            ACTUAL_CHANGES="true"
+          else
+            ACTUAL_CHANGES="false"
+          fi
+          
+          # Store raw output for debugging
+          echo "Raw output:"
+          echo "$OUTPUT"
+          echo "Exit code: $EXIT_CODE"
+          echo "Detected changes: $ACTUAL_CHANGES"
+          
+          # Set output variables
+          echo "diff_output<<EOF" >> $GITHUB_OUTPUT
+          echo "$OUTPUT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "has_changes=$EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "actual_changes=$ACTUAL_CHANGES" >> $GITHUB_OUTPUT
+      
+      - name: Find Comment
+        uses: peter-evans/find-comment@v2
+        id: find-comment
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: 'Schedule Files Diff Report'
+      
+      - name: Create or update comment
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ## Schedule Files Diff Report
+            
+            ${{ steps.diff.outputs.actual_changes == 'true' ? '⚠️ **Changes detected** in schedule files between this PR and master' : '✅ **No changes detected** in schedule files between this PR and master' }}
+            
+            <details>
+            <summary>Click to expand full diff output</summary>
+            
+            ```
+            ${{ steps.diff.outputs.diff_output }}
+            ```
+            
+            </details>
+            
+            _Last updated: ${{ format(github.event.repository.updated_at, 'YYYY-MM-DD HH:mm:ss') }}_
+            
+            _This comment is automatically generated and updated by GitHub Actions when CSV files change._
+          edit-mode: replace
