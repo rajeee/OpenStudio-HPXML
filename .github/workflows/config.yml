@@ -306,7 +306,7 @@ jobs:
           
           # Run the diff script and capture output
           echo "Running diff against origin/master"
-          OUTPUT=$(python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with origin/master 2>&1) || true
+          OUTPUT=$(python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with master 2>&1) || true
           
           # Check if output contains "columns changed" to determine if there are actual changes
           if echo "$OUTPUT" | grep -q "columns changed"; then
