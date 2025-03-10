@@ -314,6 +314,8 @@ jobs:
           else
             ACTUAL_CHANGES="false"
           fi
+          echo "actual_changes=$ACTUAL_CHANGES" >> $GITHUB_OUTPUT
+          echo "diff_output=$OUTPUT" >> $GITHUB_OUTPUT
 
       - name: Set status message
         id: status
