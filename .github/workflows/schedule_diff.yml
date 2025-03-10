@@ -5,9 +5,7 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - 'HPXMLtoOpenStudio/resources/schedule_files/*.csv'
-      - '.github/workflows/schedule-diff.yml'  # Also trigger when the workflow itself changes
-
-  # Add manual trigger option
+      - '.github/workflows/schedule-diff.yml'
   workflow_dispatch:
 
 jobs:
@@ -21,7 +19,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Need full history for branch comparison
+          fetch-depth: 0
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -33,47 +31,35 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas
       
-      - name: Debug trigger info
-        run: |
-          echo "Event name: ${{ github.event_name }}"
-          echo "Event action: ${{ github.event.action }}"
-          echo "Ref: ${{ github.ref }}"
-          echo "Repository: ${{ github.repository }}"
-          echo "Current directory: $(pwd)"
-          echo "Directory contents:"
-          ls -la
-          echo "Schedule files directory contents:"
-          ls -la HPXMLtoOpenStudio/resources/schedule_files/ || echo "Directory not found"
-          echo "Git branches:"
-          git branch -a
-      
       - name: Run schedule diff
         id: diff
         run: |
-          # Make sure the script is executable
+          # Make script executable
           chmod +x HPXMLtoOpenStudio/resources/schedule_files/print_diff.py
           
-          # Try running with debug output
-          echo "Running diff script..."
-          python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with origin/master || echo "Script failed with exit code $?"
-          
-          # Now capture the output for the comment
-          echo "Capturing output for comment..."
-          OUTPUT=$(python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with origin/master 2>&1) || true
+          # Run the diff script and capture output
+          OUTPUT=$(python HPXMLtoOpenStudio/resources/schedule_files/print_diff.py --with origin/master 2>&1)
           EXIT_CODE=$?
           
+          # Check if output contains "columns changed" to determine if there are actual changes
+          if echo "$OUTPUT" | grep -q "columns changed"; then
+            ACTUAL_CHANGES="true"
+          else
+            ACTUAL_CHANGES="false"
+          fi
+          
+          # Store raw output for debugging
           echo "Raw output:"
           echo "$OUTPUT"
           echo "Exit code: $EXIT_CODE"
-          
-          # Escape GitHub Actions special characters in the output
-          OUTPUT="${OUTPUT//'%'/'%25'}"
-          OUTPUT="${OUTPUT//$'\n'/'%0A'}"
-          OUTPUT="${OUTPUT//$'\r'/'%0D'}"
+          echo "Detected changes: $ACTUAL_CHANGES"
           
           # Set output variables
-          echo "diff_output=$OUTPUT" >> $GITHUB_OUTPUT
+          echo "diff_output<<EOF" >> $GITHUB_OUTPUT
+          echo "$OUTPUT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
           echo "has_changes=$EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "actual_changes=$ACTUAL_CHANGES" >> $GITHUB_OUTPUT
       
       - name: Find Comment
         uses: peter-evans/find-comment@v2
@@ -91,7 +77,7 @@ jobs:
           body: |
             ## Schedule Files Diff Report
             
-            ${{ steps.diff.outputs.has_changes == '1' && '⚠️ **Changes detected** in schedule files between this PR and master' || '✅ **No changes detected** in schedule files between this PR and master' }}
+            ${{ steps.diff.outputs.actual_changes == 'true' ? '⚠️ **Changes detected** in schedule files between this PR and master' : '✅ **No changes detected** in schedule files between this PR and master' }}
             
             <details>
             <summary>Click to expand full diff output</summary>
