@@ -2,10 +2,7 @@ name: Schedule Files Diff
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - 'HPXMLtoOpenStudio/resources/schedule_files/*.csv'
-      - '.github/workflows/schedule_diff.yml'
+    types: [ synchronize, opened ]
   workflow_dispatch:
 
 jobs:
